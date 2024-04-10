@@ -484,7 +484,8 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
         so as to avoid n+1 query problem.
         """
 
-        async def resolve(self, info: Info):
+        async def resolve(self, info: Info, email: str, **kwargs: object):
+            print("IN THE F***** RESOLVER", email, kwargs)
             instance_state = cast(InstanceState, inspect(self))
             if relationship.key not in instance_state.unloaded:
                 related_objects = getattr(self, relationship.key)
@@ -505,7 +506,7 @@ class StrawberrySQLAlchemyMapper(Generic[BaseModelType]):
                     loader = info.context["sqlalchemy_loader"]
                 else:
                     loader = info.context.sqlalchemy_loader
-                related_objects = await loader.loader_for(relationship).load(
+                related_objects = await loader.loader_for(relationship, **kwargs).load(
                     relationship_key
                 )
             return related_objects

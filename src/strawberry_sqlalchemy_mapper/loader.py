@@ -12,7 +12,7 @@ from typing import (
     Union,
 )
 
-from sqlalchemy import select, tuple_
+from sqlalchemy import select, tuple_, and_
 from sqlalchemy.engine.base import Connection
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncSession
 from sqlalchemy.orm import RelationshipProperty, Session
@@ -53,7 +53,7 @@ class StrawberrySQLAlchemyLoader:
             assert self._bind is not None
             return self._bind.scalars(*args, **kwargs).all()
 
-    def loader_for(self, relationship: RelationshipProperty) -> DataLoader:
+    def loader_for(self, relationship: RelationshipProperty, **kwargs: object) -> DataLoader:
         """
         Retrieve or create a DataLoader for the given relationship
         """
@@ -68,6 +68,13 @@ class StrawberrySQLAlchemyLoader:
                         *[remote for _, remote in relationship.local_remote_pairs or []]
                     ).in_(keys)
                 )
+                if kwargs:
+                    filters = []
+                    for key, value in kwargs.items():
+                        column = getattr(related_model, key)
+                        filters.append(column == value)
+                    if filters:
+                        query = query.filter(and_(*filters))
                 if relationship.order_by:
                     query = query.order_by(*relationship.order_by)
                 rows = await self._scalars_all(query)
